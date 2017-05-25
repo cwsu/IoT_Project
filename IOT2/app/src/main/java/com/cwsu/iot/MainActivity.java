@@ -8,6 +8,9 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
+import myDB.dbUser;
+import myDB.iotDB;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -34,21 +37,24 @@ public class MainActivity extends AppCompatActivity {
     private void initListener() {
 
         btnSignin.setOnClickListener(new View.OnClickListener() {
-            Intent intent;
+
             @Override
             public void onClick(View v) {
-                intent = new Intent(MainActivity.this,SigninActivity.class);
+                Intent intent = new Intent();
+                intent.setClass(MainActivity.this,SigninActivity.class);
                 startActivity(intent);
             }
         });
 
         btnSignup.setOnClickListener(new View.OnClickListener() {
-            Intent intent;
+
             @Override
             public void onClick(View v) {
-                intent = new Intent(MainActivity.this,SignupActivity.class);
+                Intent intent = new Intent();
+                intent.setClass(MainActivity.this,SignupActivity.class);
                 startActivity(intent);
             }
+
         });
     }
 }

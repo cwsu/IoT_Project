@@ -7,7 +7,10 @@ package com.cwsu.iot;
 public class User {
     String username ;
     String password ;
+    String key;
+    public User() {
 
+    }
     public User(String username, String password) {
         this.username = username;
         this.password = password;
@@ -21,11 +24,19 @@ public class User {
         return password;
     }
 
+    public String getKey() {
+        return key;
+    }
+
     public void setUsername(String username) {
         this.username = username;
     }
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
     }
 }

@@ -1,10 +1,7 @@
 package com.cwsu.iot;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -16,20 +13,26 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import myDB.dbUser;
+import myDB.iotDB;
+import util.Calculate;
 
 /**
  * Created by cwsu on 2017/5/10.
  */
 public class SignupActivity extends Activity{
-    private String postUrl = "http://127.0.0.1:8000/register/";
-    Http_Post HP;
-    static Handler handler;
+    private dbUser dbuser = null;
+    private iotDB dbHelper = null;
+    private sessionManager sessionHelper= null;
+    private Calculate ca = null;
+    String key ="";
+    String AuthQ = "";
     LinearLayout signupContent;
     EditText signupId;
     EditText signupPw;
@@ -41,23 +44,18 @@ public class SignupActivity extends Activity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signup);
-
+        this.initModule();
         this.initLayout();
         this.initListener();
-        HP = new Http_Post();
-        //接收service傳出Post的到的回傳訊息，並透過Toast顯示出來
-        handler = new Handler(){
-            public void handleMessage(Message msg){
-                switch (msg.what){
-                    case 0:
-                        Toast.makeText(SignupActivity.this, "register fail", Toast.LENGTH_LONG).show();
-                        break;
-                    case 1:
-                        Toast.makeText(SignupActivity.this, "register seccess", Toast.LENGTH_LONG).show();
-                        break;
-                }
-            }
-        };
+    }
+
+    private void initModule(){
+        queue = Volley.newRequestQueue(SignupActivity.this);
+        dbHelper = new iotDB(SignupActivity.this);
+        dbHelper.openDB(); // open db
+        dbuser = new dbUser(dbHelper);
+        sessionHelper = new sessionManager(getApplicationContext());
+        ca = new Calculate();
     }
 
     private void initLayout() {
@@ -70,43 +68,87 @@ public class SignupActivity extends Activity{
 
     private void initListener() {
         btnDoSignup.setOnClickListener(new View.OnClickListener() {
-            Intent intent;
+
             @Override
             public void onClick(View v) {
-                String url = "http://10.0.2.2:8000/register/";
+                String url = "http://140.119.164.35:8000/register/";
+                JSONObject request = new JSONObject();
+                String signupIdText = signupId.getText().toString();
+                String signupPwText = signupPw.getText().toString();
+//                String Ku = ca.generateKey();
+//                String PV = ca.encryptDecrypt(ca.sha3(Ku+signupPwText),Ku);
+                try
+                {
+                    request.put("username", signupIdText);
+//                    request.put("PV",PV);
+                    request.put("password", signupPwText);
+                }
+                catch(Exception e)
+                {
+                    e.printStackTrace();
+                }
+                JsonObjectRequest strReq = new JsonObjectRequest(Request.Method.POST, url, request,
+                        new Response.Listener<
 
-                StringRequest postRequest = new StringRequest(Request.Method.POST, url,
-                        new Response.Listener<String>() {
+                                JSONObject>() {
                             @Override
-                            public void onResponse(String response) {
-                                // response
-                                Log.d("Response", response);
+                            public void onResponse(JSONObject responseObj) {
+                                try {
+                                    key = responseObj.getString("key");
+                                    Log.i("key",key);
+//                                    String url2 = "http://140.119.164.35:8000/register/";
+//                                    AuthQ = responseObj.getString("AuthQ");
+//                                    String AuthA = ca.sha3(AuthQ);
+//                                    JSONObject request2 = new JSONObject();
+//                                    request2.put("AuthA",AuthA);
+//                                    JsonObjectRequest strReq2 = new JsonObjectRequest(Request.Method.POST,url2,request2,
+//                                            new Response.Listener<
+//
+//                                                    JSONObject>() {
+//                                                @Override
+//                                                public void onResponse(JSONObject responseObj) {
+//                                                    try {
+//
+//                                                    } catch (JSONException e) {
+//                                                        Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+//                                                    }
+//                                                }
+//                                            },
+//                                            new Response.ErrorListener() {
+//                                                @Override
+//                                                public void onErrorResponse(VolleyError error) {
+//                                                    Toast.makeText(getApplicationContext(), error.getMessage(), Toast.LENGTH_LONG).show();
+//                                                }
+//                                            }
+//                                    );
+                                } catch (JSONException e) {
+                                    Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+                                }
                             }
                         },
                         new Response.ErrorListener() {
-                            @Override
-                            public void onErrorResponse(VolleyError error) {
-                                // error
-                                Log.d("Error.Response", String.valueOf(error));
-                            }
+                                @Override
+                                public void onErrorResponse(VolleyError error) {
+                                    Toast.makeText(getApplicationContext(), error.getMessage(), Toast.LENGTH_LONG).show();
+                                }
                         }
-                ) {
 
-                    @Override
-                    protected Map<String, String> getParams() {
-                        Map<String, String> params = new HashMap<>();
-                        params.put("username", "1234");
-                        params.put("password", "12");
-                        return params;
-                    }
-                };
+                );
+                queue.add(strReq);
+                String tempKey = ca.encryptDecrypt(key,signupPwText);
+                //Key 為用pw加密過的 key
+                if(dbuser.addUser(signupPwText,signupPwText,tempKey)){
+                    Toast.makeText(getApplicationContext(), "register success", Toast.LENGTH_LONG).show();
+                    SignupActivity.this.finish();
+                } else{
+                    Toast.makeText(getApplicationContext(), "register fail", Toast.LENGTH_LONG).show();
+                }
 
-                queue.add(postRequest);
-                intent = new Intent(SignupActivity.this,MainActivity.class);
-                startActivity(intent);
+
             }
         });
     }
+
 
 
 }
