@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 24
-    buildToolsVersion "24.0.3"
+    buildToolsVersion '25.0.0'
     useLibrary 'org.apache.http.legacy'
     defaultConfig {
         applicationId "com.cwsu.iot"
@@ -30,4 +30,6 @@ dependencies {
     compile 'com.google.android.gms:play-services-appindexing:8.4.0'
     compile 'com.mcxiaoke.volley:library:1.0.0'
     compile files('libs/bcprov-jdk15on-157.jar')
+    compile files('libs/common-lang3.jar')
+    compile 'com.github.brake.threegpp:milenage:1.0.0'
 }

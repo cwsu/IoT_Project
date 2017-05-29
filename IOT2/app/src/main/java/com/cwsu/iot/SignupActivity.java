@@ -19,7 +19,6 @@ import com.android.volley.toolbox.Volley;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import myDB.dbUser;
 import myDB.iotDB;
 import util.Calculate;
 
@@ -27,12 +26,11 @@ import util.Calculate;
  * Created by cwsu on 2017/5/10.
  */
 public class SignupActivity extends Activity{
-    private dbUser dbuser = null;
+
     private iotDB dbHelper = null;
     private sessionManager sessionHelper= null;
     private Calculate ca = null;
-    String key ="";
-    String AuthQ = "";
+    String Spu = "1000";
     LinearLayout signupContent;
     EditText signupId;
     EditText signupPw;
@@ -53,7 +51,6 @@ public class SignupActivity extends Activity{
         queue = Volley.newRequestQueue(SignupActivity.this);
         dbHelper = new iotDB(SignupActivity.this);
         dbHelper.openDB(); // open db
-        dbuser = new dbUser(dbHelper);
         sessionHelper = new sessionManager(getApplicationContext());
         ca = new Calculate();
     }
@@ -71,17 +68,24 @@ public class SignupActivity extends Activity{
 
             @Override
             public void onClick(View v) {
-                String url = "http://140.119.164.35:8000/register/";
+//                String url = "http://140.119.164.35:8003/register";
+                String url = "http://127.0.0.1:8003/register";
                 JSONObject request = new JSONObject();
-                String signupIdText = signupId.getText().toString();
+                final String signupIdText = signupId.getText().toString();
                 String signupPwText = signupPw.getText().toString();
-//                String Ku = ca.generateKey();
-//                String PV = ca.encryptDecrypt(ca.sha3(Ku+signupPwText),Ku);
+                String Ku = ca.sha3(signupIdText+"_"+"gateway"+"_"+signupPwText);
+                String PV = ca.encryptDecrypt(ca.sha3(Ku+"_"+signupPwText),Ku);
+
                 try
                 {
-                    request.put("username", signupIdText);
-//                    request.put("PV",PV);
-                    request.put("password", signupPwText);
+                    request.put("ID", signupIdText);
+                    request.put("PV",PV);
+                    request.put("Espu_P",ca.encryptDecrypt(signupPwText,Spu));
+                    request.put("Espu_Ku", ca.encryptDecrypt(Ku,Spu));
+
+                    Log.i("PV",PV);
+                    Log.i("Espu_P",ca.encryptDecrypt(signupPwText,Spu));
+                    Log.i("Espu_Ku",ca.encryptDecrypt(Ku,Spu));
                 }
                 catch(Exception e)
                 {
@@ -94,34 +98,18 @@ public class SignupActivity extends Activity{
                             @Override
                             public void onResponse(JSONObject responseObj) {
                                 try {
-                                    key = responseObj.getString("key");
-                                    Log.i("key",key);
-//                                    String url2 = "http://140.119.164.35:8000/register/";
-//                                    AuthQ = responseObj.getString("AuthQ");
-//                                    String AuthA = ca.sha3(AuthQ);
-//                                    JSONObject request2 = new JSONObject();
-//                                    request2.put("AuthA",AuthA);
-//                                    JsonObjectRequest strReq2 = new JsonObjectRequest(Request.Method.POST,url2,request2,
-//                                            new Response.Listener<
-//
-//                                                    JSONObject>() {
-//                                                @Override
-//                                                public void onResponse(JSONObject responseObj) {
-//                                                    try {
-//
-//                                                    } catch (JSONException e) {
-//                                                        Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG).show();
-//                                                    }
-//                                                }
-//                                            },
-//                                            new Response.ErrorListener() {
-//                                                @Override
-//                                                public void onErrorResponse(VolleyError error) {
-//                                                    Toast.makeText(getApplicationContext(), error.getMessage(), Toast.LENGTH_LONG).show();
-//                                                }
-//                                            }
-//                                    );
+                                    String response = responseObj.getString("response");
+                                    Log.i("response",response);
+                                    if(response =="yes"){
+                                        Toast.makeText(getApplicationContext(),"register success", Toast.LENGTH_LONG).show();
+                                        SignupActivity.this.finish();
+                                    }else{
+                                        Toast.makeText(getApplicationContext(),"register fail", Toast.LENGTH_LONG).show();
+                                        signupId.setText("");
+                                        signupPw.setText("");
+                                    }
                                 } catch (JSONException e) {
+                                    Log.i("err",e.getMessage());
                                     Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG).show();
                                 }
                             }
@@ -132,23 +120,9 @@ public class SignupActivity extends Activity{
                                     Toast.makeText(getApplicationContext(), error.getMessage(), Toast.LENGTH_LONG).show();
                                 }
                         }
-
                 );
                 queue.add(strReq);
-                String tempKey = ca.encryptDecrypt(key,signupPwText);
-                //Key 為用pw加密過的 key
-                if(dbuser.addUser(signupPwText,signupPwText,tempKey)){
-                    Toast.makeText(getApplicationContext(), "register success", Toast.LENGTH_LONG).show();
-                    SignupActivity.this.finish();
-                } else{
-                    Toast.makeText(getApplicationContext(), "register fail", Toast.LENGTH_LONG).show();
-                }
-
-
             }
         });
     }
-
-
-
 }
